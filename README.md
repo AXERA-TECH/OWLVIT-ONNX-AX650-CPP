@@ -2,7 +2,9 @@
 
 https://huggingface.co/docs/transformers/model_doc/owlvit
 
-https://github.com/AXERA-TECH/OWLVIT-ONNX-AX650-CPP/assets/46700201/039fb857-e198-403e-8a3e-54fb3eaad80c
+
+https://github.com/AXERA-TECH/OWLVIT-ONNX-AX650-CPP/assets/46700201/51daa50c-170d-4a30-a13b-6e2d659cd05c
+
 
 <img src="ssd_horse.jpg" height="300" /> <img src="result.jpg" height="300" />
 
