@@ -20,6 +20,7 @@ protected:
     std::shared_ptr<Ort::Session> TextEncoderSession, DecoderSession;
     Ort::MemoryInfo memory_info_handler = Ort::MemoryInfo::CreateCpu(
         OrtArenaAllocator, OrtMemTypeDefault);
+    int num_thread = 8;
 
     const char
         *TextEncInputNames[2]{"input_ids", "attention_mask"},
@@ -30,11 +31,6 @@ protected:
     float _mean_val[3] = {122.7709383, 116.7460125, 104.09373615};
     float _std_val[3] = {1 / 68.5005327, 1 / 66.6321579, 1 / 70.32316305};
     std::shared_ptr<TokenizerBase> tokenizer;
-
-    // std::vector<float> image_features_input;
-    // std::vector<float> text_features_input;
-    // std::vector<float> pred_boxes;
-    // std::vector<int64> input_ids;
 
     std::vector<int64_t> image_features_shape;
     std::vector<int64_t> text_features_shape = {1, 512};
@@ -86,10 +82,40 @@ public:
     {
         env = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "owlvit");
         session_options = Ort::SessionOptions();
-        session_options.SetInterOpNumThreads(4);
-        session_options.SetIntraOpNumThreads(4);
+        if (num_thread <= 0)
+        {
+
+            session_options.SetInterOpNumThreads(std::thread::hardware_concurrency());
+            session_options.SetIntraOpNumThreads(std::thread::hardware_concurrency());
+        }
+        else
+        {
+
+            session_options.SetInterOpNumThreads(num_thread);
+            session_options.SetIntraOpNumThreads(num_thread);
+        }
+
         // 设置图像优化级别
         session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+    }
+
+    int get_num_thread()
+    {
+        return num_thread;
+    }
+    void set_num_thread(int num)
+    {
+        num_thread = num;
+        if (num_thread <= 0)
+        {
+            session_options.SetInterOpNumThreads(std::thread::hardware_concurrency());
+            session_options.SetIntraOpNumThreads(std::thread::hardware_concurrency());
+        }
+        else
+        {
+            session_options.SetInterOpNumThreads(num_thread);
+            session_options.SetIntraOpNumThreads(num_thread);
+        }
     }
 
     int get_image_feature_size()
@@ -105,38 +131,23 @@ public:
     bool load_tokenizer(std::string vocab_path)
     {
         tokenizer.reset(new TokenizerClip);
-        // ALOGI("text token len %d", LEN_TEXT_TOKEN);
-        // text_tokens_input = std::vector<int>(LEN_TEXT_TOKEN);
         return tokenizer->load_tokenize(vocab_path);
     }
 
     bool load_decoder(std::string decoder_path)
     {
         DecoderSession.reset(new Ort::Session(env, decoder_path.c_str(), session_options));
-        // if (DecoderSession->GetInputCount() != 2 || DecoderSession->GetOutputCount() != 2)
-        // {
-        //     ALOGE("Model not loaded (invalid input/output count)");
-        //     return false;
-        // }
         return true;
     }
 
     bool load_text_encoder(std::string encoder_path)
     {
         TextEncoderSession.reset(new Ort::Session(env, encoder_path.c_str(), session_options));
-        
-        // if (TextEncoderSession->GetInputCount() != 1 || TextEncoderSession->GetOutputCount() != 1)
-        // {
-        //     ALOGE("Model not loaded (invalid input/output count)");
-        //     return false;
-        // }
         auto shape = TextEncoderSession->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
         LEN_TEXT_FEATURE = 1;
-        // text_features_shape.clear();
         for (size_t i = 0; i < shape.size(); i++)
         {
             LEN_TEXT_FEATURE *= shape[i];
-            // text_features_shape.push_back(shape[i]);
         }
         ALOGI("text feature len %d", LEN_TEXT_FEATURE);
         return true;
@@ -236,7 +247,6 @@ public:
         {
             logits_size *= logits_shape[i];
         }
-        // ALOGI("logits_size: %d", logits_size);
         logits.resize(logits_size);
         memcpy(logits.data(), logits_ptr, logits_size * sizeof(float));
     }

@@ -74,6 +74,7 @@ int main(int argc, char *argv[])
     std::string text_encoder_model_path;
     std::string decoder_model_path;
     float bbox_threshold = 0.2;
+    int num_thread = 8;
 
     cmdline::parser cmd;
     cmd.add<std::string>("ienc", 0, "encoder model(onnx model or axmodel)", true, image_encoder_model_path);
@@ -83,6 +84,7 @@ int main(int argc, char *argv[])
     cmd.add<std::string>("text", 't', "text or txt file", true, text_src);
     cmd.add<std::string>("vocab", 'v', "vocab path", true, vocab_path);
     cmd.add<float>("threshold", 0, "bbox threshold", false, bbox_threshold);
+    cmd.add<int>("thread", 0, "thread num", false, num_thread);
 
     cmd.parse_check(argc, argv);
 
@@ -90,6 +92,7 @@ int main(int argc, char *argv[])
     image_encoder_model_path = cmd.get<std::string>("ienc");
     text_encoder_model_path = cmd.get<std::string>("tenc");
     decoder_model_path = cmd.get<std::string>("dec");
+    num_thread = cmd.get<int>("thread");
 
     std::shared_ptr<OWLVIT> mOWLVIT;
     if (string_utility<std::string>::ends_with(image_encoder_model_path, ".onnx"))
@@ -106,6 +109,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    mOWLVIT->set_num_thread(num_thread);
     mOWLVIT->load_image_encoder(image_encoder_model_path);
     mOWLVIT->load_text_encoder(text_encoder_model_path);
     mOWLVIT->load_decoder(decoder_model_path);

@@ -2,6 +2,7 @@
 #include "../BaseRunner.hpp"
 
 #include "onnxruntime_cxx_api.h"
+#include "thread"
 
 class OnnxRunner : virtual public BaseRunner
 {
@@ -24,8 +25,17 @@ public:
     int load(BaseConfig &config) override
     {
         Ort::SessionOptions session_options;
-        session_options.SetInterOpNumThreads(config.nthread);
-        session_options.SetIntraOpNumThreads(config.nthread);
+        if (config.nthread <= 0)
+        {
+            session_options.SetInterOpNumThreads(std::thread::hardware_concurrency());
+            session_options.SetIntraOpNumThreads(std::thread::hardware_concurrency());
+        }
+        else
+        {
+            session_options.SetInterOpNumThreads(config.nthread);
+            session_options.SetIntraOpNumThreads(config.nthread);
+        }
+
         // session_options
         // TensorRT加速开启，CUDA加速开启
         // OrtSessionOptionsAppendExecutionProvider_Tensorrt(session_options, 0); // tensorRT

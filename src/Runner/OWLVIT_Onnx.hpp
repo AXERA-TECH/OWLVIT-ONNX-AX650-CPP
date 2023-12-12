@@ -13,7 +13,7 @@ public:
     {
         m_encoder = CreateRunner(RT_OnnxRunner);
         BaseConfig config;
-        config.nthread = 4;
+        config.nthread = num_thread;
         config.onnx_model = encoder_path;
         m_encoder->load(config);
 
