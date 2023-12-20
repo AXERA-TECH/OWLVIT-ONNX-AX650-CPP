@@ -24,7 +24,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #    endif()
 #endif()
 
-find_package(Qt5 COMPONENTS Widgets REQUIRED)
+# find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Widgets)
+if(Qt6_FOUND)
+  set(QTWidget Qt6::Widgets)
+else()
+  find_package(Qt5 COMPONENTS Widgets REQUIRED)
+  set(QTWidget Qt5::Widgets)
+endif()
 
 add_executable(OWLVITQT
   main.cpp
@@ -39,7 +46,8 @@ add_executable(OWLVITQT
   owlvit/Runner/ax_model_runner_ax650.cpp
 )
 
-target_link_libraries(OWLVITQT PRIVATE Qt5::Widgets)
+# target_link_libraries(OWLVITQT PRIVATE Qt5::Widgets)
+target_link_libraries(OWLVITQT PRIVATE ${QTWidget})
 
 
 # bsp
