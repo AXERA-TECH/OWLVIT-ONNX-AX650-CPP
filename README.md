@@ -8,6 +8,9 @@ https://github.com/AXERA-TECH/OWLVIT-ONNX-AX650-CPP/assets/46700201/51daa50c-170
 
 <img src="ssd_horse.jpg" height="300" /> <img src="result.jpg" height="300" />
 
+## Get ONNX Model
+[README](scripts/README.md)
+
 ## Build
 ```
 mkdir build
@@ -28,7 +31,7 @@ aarch64-none-gnu library:\
 [onnxruntime](https://github.com/ZHEQIUSHUI/SAM-ONNX-AX650-CPP/releases/download/ax_models/onnxruntime-aarch64-none-gnu-1.16.0.zip)\
 [opencv](https://github.com/ZHEQIUSHUI/SAM-ONNX-AX650-CPP/releases/download/ax_models/libopencv-4.6-aarch64-none.zip)
 
-### run
+### Run
 ```
 /opt/test/owlvit # ./main --ienc owlvit-image.axmodel --tenc owlvit-text.onnx -d
  owlvit-post.onnx -v vocab.txt -i ssd_horse.jpg -t text.txt --thread 8

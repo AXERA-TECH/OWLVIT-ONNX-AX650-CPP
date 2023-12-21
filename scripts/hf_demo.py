@@ -13,9 +13,9 @@ texts = [["a photo of people"]]
 inputs = processor(text=texts, images=image, return_tensors="pt")
 outputs = model(**inputs)
 
-# torch.onnx.export(model, (inputs["input_ids"],inputs["pixel_values"],inputs["attention_mask"]), "weights/owlvit.onnx", opset_version=14,
-#                   input_names=["input_ids","pixel_values","attention_mask"],
-#                   output_names=["logits","pred_boxes","text_embeds","image_embeds"])
+torch.onnx.export(model, (inputs["input_ids"],inputs["pixel_values"],inputs["attention_mask"]), "weights/owlvit.onnx", opset_version=14,
+                  input_names=["input_ids","pixel_values","attention_mask"],
+                  output_names=["logits","pred_boxes","text_embeds","image_embeds"])
 
 print(inputs)
 # print(processor)
