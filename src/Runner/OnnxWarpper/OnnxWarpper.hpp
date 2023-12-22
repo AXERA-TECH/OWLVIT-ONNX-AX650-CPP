@@ -3,23 +3,137 @@
 
 #include "onnxruntime_cxx_api.h"
 #include "thread"
+#include "map"
+
+struct OnnxTensor : BaseTensor
+{
+    ONNXTensorElementDataType internal_type;
+    std::shared_ptr<char> internal_data;
+};
+
+static std::map<ONNXTensorElementDataType, TensorDataType> OnnxTypeToTensorType = {
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_UNDEFINED, TENSOR_DATA_TYPE_UNDEFINED},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT, TENSOR_DATA_TYPE_FLOAT},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE, TENSOR_DATA_TYPE_DOUBLE},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8, TENSOR_DATA_TYPE_INT8},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16, TENSOR_DATA_TYPE_INT16},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32, TENSOR_DATA_TYPE_INT32},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64, TENSOR_DATA_TYPE_INT64},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8, TENSOR_DATA_TYPE_UINT8},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16, TENSOR_DATA_TYPE_UINT16},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32, TENSOR_DATA_TYPE_UINT32},
+    {ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64, TENSOR_DATA_TYPE_UINT64},
+};
+
+static std::map<TensorDataType, std::string> TensorTypeToStr = {
+    {TENSOR_DATA_TYPE_FLOAT, "float"},
+    {TENSOR_DATA_TYPE_DOUBLE, "double"},
+    {TENSOR_DATA_TYPE_INT8, "int8"},
+    {TENSOR_DATA_TYPE_INT16, "int16"},
+    {TENSOR_DATA_TYPE_INT32, "int32"},
+    {TENSOR_DATA_TYPE_INT64, "int64"},
+    {TENSOR_DATA_TYPE_UINT8, "uint8"},
+    {TENSOR_DATA_TYPE_UINT16, "uint16"},
+    {TENSOR_DATA_TYPE_UINT32, "uint32"},
+    {TENSOR_DATA_TYPE_UINT64, "uint64"},
+    {TENSOR_DATA_TYPE_UNDEFINED, "undefined"},
+};
 
 class OnnxRunner : virtual public BaseRunner
 {
     Ort::Env env;
     Ort::Session session{nullptr};
 
-    std::vector<std::vector<size_t>> inputs_shape;
     std::vector<std::string> inputs_name;
     std::vector<const char *> inputs_name_cstr;
-    std::vector<std::shared_ptr<float>> inputs_data;
+    std::vector<OnnxTensor> inputs_data;
     std::vector<Ort::Value> inputs_tensor;
 
-    std::vector<std::vector<size_t>> outputs_shape;
     std::vector<std::string> outputs_name;
     std::vector<const char *> outputs_name_cstr;
-    std::vector<std::shared_ptr<float>> outputs_data;
+    std::vector<OnnxTensor> outputs_data;
     std::vector<Ort::Value> outputs_tensor;
+
+    Ort::AllocatorWithDefaultOptions allocator;
+
+    void AddTensor(OrtMemoryInfo *memory_info, ONNXTensorElementDataType type, size_t cnt_elem, std::vector<int64_t> &shape,
+                   std::vector<Ort::Value> &tensors, std::vector<OnnxTensor> &tensor_data)
+    {
+        std::shared_ptr<char> data;
+        switch (type)
+        {
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT:
+        {
+            data.reset(new char[cnt_elem * sizeof(float)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<float>(memory_info, (float *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT8:
+        {
+            data.reset(new char[cnt_elem * sizeof(uint8_t)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<uint8_t>(memory_info, (uint8_t *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT8:
+        {
+            data.reset(new char[cnt_elem * sizeof(int8_t)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<int8_t>(memory_info, (int8_t *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT16:
+        {
+            data.reset(new char[cnt_elem * sizeof(uint16_t)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<uint16_t>(memory_info, (uint16_t *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT16:
+        {
+            data.reset(new char[cnt_elem * sizeof(int16_t)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<int16_t>(memory_info, (int16_t *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT32:
+        {
+            data.reset(new char[cnt_elem * sizeof(int32_t)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<int32_t>(memory_info, (int32_t *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64:
+        {
+            data.reset(new char[cnt_elem * sizeof(int64_t)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<int64_t>(memory_info, (int64_t *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_DOUBLE:
+        {
+            data.reset(new char[cnt_elem * sizeof(double)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<double>(memory_info, (double *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT32:
+        {
+            data.reset(new char[cnt_elem * sizeof(uint32_t)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<uint32_t>(memory_info, (uint32_t *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        break;
+        case ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT64:
+        {
+            data.reset(new char[cnt_elem * sizeof(uint64_t)], std::default_delete<char[]>());
+            tensors.push_back(Ort::Value::CreateTensor<uint64_t>(memory_info, (uint64_t *)data.get(), cnt_elem, shape.data(), shape.size()));
+        }
+        break;
+        default:
+            printf("not support type: %d\n", type);
+            break;
+        }
+
+        OnnxTensor tensor;
+        tensor.internal_type = type;
+        tensor.type = OnnxTypeToTensorType.at(type);
+        tensor.cnt_elem = cnt_elem;
+        tensor.internal_data = data;
+        tensor.data = tensor.internal_data.get();
+        tensor_data.push_back(tensor);
+    }
 
 public:
     int load(BaseConfig &config) override
@@ -42,7 +156,7 @@ public:
         // OrtSessionOptionsAppendExecutionProvider_CUDA(session_options, 0);
         session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
         auto memory_info = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-        Ort::AllocatorWithDefaultOptions allocator;
+
         session = Ort::Session{env, config.onnx_model.c_str(), session_options};
         printf("\ninputs: \n");
         for (size_t i = 0; i < session.GetInputCount(); i++)
@@ -57,26 +171,18 @@ public:
             {
                 input_shape[0] = 1;
             }
-            std::vector<size_t> tmp_input_shape(input_shape.size());
+
             for (size_t j = 0; j < input_shape.size(); j++)
             {
-                tmp_input_shape[j] = input_shape[j];
-                printf("%d", tmp_input_shape[j]);
+                printf("%ld", input_shape[j]);
                 if (j < (input_shape.size() - 1))
                     printf(" x ");
             }
-            printf("\n");
-            inputs_shape.push_back(tmp_input_shape);
 
-            int len = 1;
-            for (size_t d = 0; d < input_shape.size(); d++)
-            {
-                len *= input_shape[d];
-            }
-            std::shared_ptr<float> data(new float[len], std::default_delete<float[]>());
-            inputs_data.push_back(data);
-
-            inputs_tensor.push_back(Ort::Value::CreateTensor<float>(memory_info, data.get(), len, input_shape.data(), input_shape.size()));
+            size_t cnt_elem = session.GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementCount();
+            auto type = session.GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementType();
+            AddTensor(memory_info, type, cnt_elem, input_shape, inputs_tensor, inputs_data);
+            printf("[%s] \n", TensorTypeToStr.at((inputs_data.end() - 1)->type).c_str());
         }
         printf("output: \n");
         for (size_t i = 0; i < session.GetOutputCount(); i++)
@@ -90,26 +196,18 @@ public:
             {
                 output_shape[0] = 1;
             }
-            std::vector<size_t> tmp_output_shape(output_shape.size());
+
             for (size_t j = 0; j < output_shape.size(); j++)
             {
-                tmp_output_shape[j] = output_shape[j];
-                printf("%d", tmp_output_shape[j]);
+                printf("%ld", output_shape[j]);
                 if (j < (output_shape.size() - 1))
                     printf(" x ");
             }
-            printf("\n");
-            outputs_shape.push_back(tmp_output_shape);
 
-            int len = 1;
-            for (size_t d = 0; d < output_shape.size(); d++)
-            {
-                len *= output_shape[d];
-            }
-            std::shared_ptr<float> data(new float[len], std::default_delete<float[]>());
-            outputs_data.push_back(data);
-
-            outputs_tensor.push_back(Ort::Value::CreateTensor<float>(memory_info, data.get(), len, output_shape.data(), output_shape.size()));
+            int cnt_elem = session.GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementCount();
+            auto type = session.GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementType();
+            AddTensor(memory_info, type, cnt_elem, output_shape, outputs_tensor, outputs_data);
+            printf(" [%s] \n", TensorTypeToStr.at((outputs_data.end() - 1)->type).c_str());
         }
 
         inputs_name_cstr.resize(inputs_name.size());
@@ -130,55 +228,49 @@ public:
     int inference() override
     {
         Ort::RunOptions run_options;
-        // for (size_t i = 0; i < inputs_name_cstr.size(); i++)
-        // {
-        //     printf("%20s: \n", inputs_name_cstr[i]);
-        // }
-        //  for (size_t i = 0; i < outputs_name_cstr.size(); i++)
-        // {
-        //     printf("%20s: \n", outputs_name_cstr[i]);
-        // }
-        session.Run(run_options, inputs_name_cstr.data(), inputs_tensor.data(), inputs_tensor.size(), outputs_name_cstr.data(), outputs_tensor.data(), outputs_tensor.size());
+        session.Run(run_options,
+                    inputs_name_cstr.data(), inputs_tensor.data(), inputs_tensor.size(),
+                    outputs_name_cstr.data(), outputs_tensor.data(), outputs_tensor.size());
         return 0;
     }
 
     int getInputCount() override
     {
-        return inputs_shape.size();
+        return inputs_tensor.size();
     }
 
-    std::vector<size_t> getInputShape(int idx) override
+    std::vector<int64_t> getInputShape(int idx) override
     {
-        return inputs_shape[idx];
+        return inputs_tensor[idx].GetTensorTypeAndShapeInfo().GetShape();
     }
 
     std::string getInputName(int idx) override
     {
-        return inputs_name[idx];
+        return std::string(session.GetInputNameAllocated(idx, allocator).get());
     }
 
-    float *getInputPtr(int idx) override
+    const BaseTensor *getInput(int idx) override
     {
-        return inputs_data[idx].get();
+        return &inputs_data[idx];
     }
 
     int getOutputCount() override
     {
-        return outputs_shape.size();
+        return outputs_tensor.size();
     }
 
-    std::vector<size_t> getOutputShape(int idx) override
+    std::vector<int64_t> getOutputShape(int idx) override
     {
-        return outputs_shape[idx];
+        return outputs_tensor[idx].GetTensorTypeAndShapeInfo().GetShape();
     }
 
     std::string getOutputName(int idx) override
     {
-        return outputs_name[idx];
+        return std::string(session.GetOutputNameAllocated(idx, allocator).get());
     }
 
-    float *getOutputPtr(int idx) override
+    const BaseTensor *getOutput(int idx) override
     {
-        return outputs_data[idx].get();
+        return &outputs_data[idx];
     }
 };

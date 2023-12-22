@@ -50,7 +50,7 @@ public:
         // cv::resize(image, mat_input, cv::Size(input_width, input_height));
         // cv::cvtColor(mat_input, mat_input, cv::COLOR_BGR2RGB);
 
-        float *inputPtr = (float *)m_encoder->getInputPtr(0);
+        float *inputPtr = (float *)m_encoder->getInput(0)->data;
 
         uchar *img_data = mat_input.data;
 
@@ -72,9 +72,9 @@ public:
         auto ret = m_encoder->inference();
 
         image_features.resize(LEN_IMAGE_FEATURE);
-        memcpy(image_features.data(), m_encoder->getOutputPtr(0), LEN_IMAGE_FEATURE * sizeof(float));
+        memcpy(image_features.data(), m_encoder->getOutput(0)->data, LEN_IMAGE_FEATURE * sizeof(float));
 
-        float *output = (float *)m_encoder->getOutputPtr(1);
+        float *output = (float *)m_encoder->getOutput(1)->data;
         pred_boxes.resize(CNT_PRED_BOXES);
         for (size_t i = 0; i < CNT_PRED_BOXES; i++)
         {
