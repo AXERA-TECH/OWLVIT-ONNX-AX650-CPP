@@ -1,4 +1,4 @@
-a photo of person
-horse
-a photo of car
-a photo of dog
+cat
+dog
+bird
+person
